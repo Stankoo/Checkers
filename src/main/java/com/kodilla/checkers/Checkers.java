@@ -22,7 +22,8 @@ public class Checkers extends Application {
     private Button resignButton;
     private Label message;
     public boolean gameInProgress;
-    public int currentPlayer;
+    public Team currentPlayer;
+    public PieceType pieceType;
 
     public void prepareGUIContent() {
         message = new Label("Click \"New Game\" to begin.");
@@ -30,7 +31,7 @@ public class Checkers extends Application {
         message.setFont(Font.font(null, FontWeight.BOLD, 18));
         newGameButton = new Button("New Game");
         resignButton = new Button("Resign");
-        board = new CheckersBoard(message, gameInProgress, currentPlayer, newGameButton, resignButton);
+        board = new CheckersBoard(message, gameInProgress, currentPlayer, pieceType, newGameButton, resignButton);
         board.drawBoard();
         newGameButton.setOnAction(e -> board.doNewGame());
         resignButton.setOnAction(e -> board.doResign());

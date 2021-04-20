@@ -8,32 +8,31 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 
-import static com.kodilla.checkers.CheckersData.WHITE;
-import static com.kodilla.checkers.CheckersData.BLACK;
-import static com.kodilla.checkers.CheckersData.BLACK_KING;
-import static com.kodilla.checkers.CheckersData.WHITE_KING;
+
 
 public class CheckersBoard extends Canvas {
     public static final int PieceSize = 28;
     public static final int HIGHLIGHT_LINE = 4;
     private final CheckersData board;
     private int selectedRow, selectedCol;
-    CheckersMove[] legalMoves;
+    private CheckersMove[] legalMoves;
     private final Label message;
     boolean gameInProgress;
     private final Button newGameButton;
     private final Button resignButton;
-    int currentPlayer;
+    private Team currentPlayer;
+    public PieceType pieceType;
     private final GraphicsContext g = getGraphicsContext2D();
     private final int BOARD_SIZE = 8;
     private final int TILE_SIZE = 40;
 
 
-    CheckersBoard(Label message, boolean gameInProgress, int currentPlayer, Button newGameButton, Button resignButton) {
+    CheckersBoard(Label message, boolean gameInProgress, Team currentPlayer, PieceType pieceType, Button newGameButton, Button resignButton) {
         super(324, 324);
         this.gameInProgress = gameInProgress;
         this.currentPlayer = currentPlayer;
         this.message = message;
+        this.pieceType = pieceType;
         this.newGameButton = newGameButton;
         this.resignButton = resignButton;
         board = new CheckersData();
@@ -46,8 +45,8 @@ public class CheckersBoard extends Canvas {
             return;
         }
         board.setUpGame();
-        currentPlayer = WHITE;
-        legalMoves = board.getLegalMoves(WHITE);
+        currentPlayer = Team.WHITE;
+        legalMoves = board.getLegalMoves(PieceType.WHITE_PIECE, Team.WHITE );
         selectedRow = -1;
         message.setText("White:  Make your move.");
         gameInProgress = true;
@@ -58,7 +57,7 @@ public class CheckersBoard extends Canvas {
 
     void doResign() {
 
-        if (currentPlayer == WHITE)
+        if (currentPlayer == Team.WHITE)
             gameOver("WHITE resigns.  BLACK wins.");
         else
             gameOver("BLACK resigns.  WHITE wins.");
@@ -76,7 +75,7 @@ public class CheckersBoard extends Canvas {
             if (legalMove.fromRow == row && legalMove.fromCol == col) {
                 selectedRow = row;
                 selectedCol = col;
-                if (currentPlayer == WHITE)
+                if (currentPlayer == Team.WHITE)
                     message.setText("WHITE:  Make your move.");
                 else
                     message.setText("BLACK:  Make your move.");
@@ -101,9 +100,9 @@ public class CheckersBoard extends Canvas {
     void doMakeMove(CheckersMove move) {
         board.makeMove(move);
         if (move.isJump()) {
-            legalMoves = board.getLegalJumpsFrom(currentPlayer, move.toRow, move.toCol);
+            legalMoves = board.getLegalJumpsFrom(pieceType , move.toRow, move.toCol);
             if (legalMoves != null) {
-                if (currentPlayer == WHITE)
+                if (currentPlayer == Team.WHITE)
                     message.setText("WHITE:  You must continue jumping.");
                 else
                     message.setText("BLACK:  You must continue jumping.");
@@ -113,9 +112,9 @@ public class CheckersBoard extends Canvas {
                 return;
             }
         }
-        if (currentPlayer == WHITE) {
-            currentPlayer = BLACK;
-            legalMoves = board.getLegalMoves(currentPlayer);
+        if (currentPlayer == Team.WHITE) {
+            currentPlayer = Team.BLACK;
+            legalMoves = board.getLegalMoves( pieceType, currentPlayer);
             if (legalMoves == null)
                 gameOver("BLACK has no moves. WHITE wins.");
             else if (legalMoves[0].isJump())
@@ -123,8 +122,8 @@ public class CheckersBoard extends Canvas {
             else
                 message.setText("BLACK:  Make your move.");
         } else {
-            currentPlayer = WHITE;
-            legalMoves = board.getLegalMoves(currentPlayer);
+            currentPlayer = Team.WHITE;
+            legalMoves = board.getLegalMoves( pieceType, currentPlayer);
             if (legalMoves == null)
                 gameOver("WHITE has no moves.  BLACK wins.");
             else if (legalMoves[0].isJump())
@@ -162,9 +161,9 @@ public class CheckersBoard extends Canvas {
         g.strokeRect(1, 1, 322, 322);
     }
 
+
     public void drawBoard() {
         initGraphicContext();
-
         for (int row = 0; row < BOARD_SIZE; row++) {
             for (int col = 0; col < BOARD_SIZE; col++) {
                 if (row % 2 == col % 2)
@@ -203,7 +202,8 @@ public class CheckersBoard extends Canvas {
         g.strokeRect(HIGHLIGHT_LINE + fromCol * TILE_SIZE, HIGHLIGHT_LINE + fromRow * TILE_SIZE, 36, 36);
     }
 
-    private void drawPiece(int row, int col,Color c,boolean isKing) {
+
+    private void drawPiece(int row, int col, Color c, boolean isKing) {
         g.setFill(c);
         g.fillOval(BOARD_SIZE + col * TILE_SIZE, BOARD_SIZE + row * TILE_SIZE, PieceSize, PieceSize);
         if (!isKing)
@@ -211,19 +211,20 @@ public class CheckersBoard extends Canvas {
         g.setFill(Color.BLACK);
         g.fillText("K", 15 + col * TILE_SIZE, 29 + row * TILE_SIZE);
     }
+
     private void drawPiece(int row, int col) {
         switch (board.pieceAt(row, col)) {
-            case WHITE:
-                drawPiece(row,col,Color.WHITE,false);
+            case WHITE_PIECE:
+                drawPiece(row, col, Color.WHITE, false);
                 break;
-            case BLACK:
-                drawPiece(row,col,Color.BLACK,false);
+            case BLACK_PIECE:
+                drawPiece(row, col, Color.BLACK, false);
                 break;
             case WHITE_KING:
-                drawPiece(row,col,Color.WHITE,true);
+                drawPiece(row, col, Color.WHITE, true);
                 break;
             case BLACK_KING:
-                drawPiece(row,col,Color.BLACK,true);
+                drawPiece(row, col, Color.BLACK, true);
                 break;
         }
     }
