@@ -18,32 +18,35 @@ public class Checkers extends Application {
     }
 
     private CheckersBoard board;
-    private Button newGameButton;
-    private Button resignButton;
-    private Label message;
-    public boolean gameInProgress;
-    public Team currentPlayer;
-    public PieceType pieceType;
+    public Button newPlayersGameButton;
+    public Button resignButton;
+    public Button newGameVsComputerButton;
+    public Label message;
+
+
 
     public void prepareGUIContent() {
         message = new Label("Click \"New Game\" to begin.");
         message.setTextFill(Color.rgb(9, 10, 9));
         message.setFont(Font.font(null, FontWeight.BOLD, 18));
-        newGameButton = new Button("New Game");
+        newPlayersGameButton = new Button("New Game vs Player");
+        newGameVsComputerButton = new Button("New Game vs Computer");
         resignButton = new Button("Resign");
-        board = new CheckersBoard(message, gameInProgress, currentPlayer, pieceType, newGameButton, resignButton);
+        board = new CheckersBoard(this);
         board.drawBoard();
-        newGameButton.setOnAction(e -> board.doNewGame());
+        newPlayersGameButton.setOnAction(e -> board.doNewGameVsPlayer());
+        newGameVsComputerButton.setOnAction(e -> board.doNewGameVsComputer());
         resignButton.setOnAction(e -> board.doResign());
         board.setOnMousePressed(e -> board.mousePressed(e));
         board.relocate(20, 20);
-        newGameButton.relocate(370, 120);
+        newGameVsComputerButton.relocate(350, 100);
+        newPlayersGameButton.relocate(360, 140);
         resignButton.relocate(370, 200);
         message.relocate(20, 370);
         resignButton.setManaged(false);
         resignButton.resize(100, 30);
-        newGameButton.setManaged(false);
-        newGameButton.resize(100, 30);
+        newPlayersGameButton.setManaged(true);
+        newGameVsComputerButton.setManaged(true);
     }
 
     public void start(Stage stage) {
@@ -65,7 +68,7 @@ public class Checkers extends Application {
         Pane root = new Pane();
         root.setPrefWidth(500);
         root.setPrefHeight(420);
-        root.getChildren().addAll(board, newGameButton, resignButton, message);
+        root.getChildren().addAll(board, newPlayersGameButton, resignButton,newGameVsComputerButton, message);
         root.setStyle("-fx-background-color: #515451; "
                 + "-fx-border-color: #180404; -fx-border-width:3");
         return root;

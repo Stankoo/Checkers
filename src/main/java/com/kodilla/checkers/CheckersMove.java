@@ -1,18 +1,44 @@
 package com.kodilla.checkers;
 
-public class CheckersMove {
-    int fromRow, fromCol;
-    int toRow, toCol;
 
-    CheckersMove(int fromRow, int fromCol, int toRow, int toCol) {
-        this.fromRow = fromRow;
-        this.fromCol = fromCol;
-        this.toRow = toRow;
-        this.toCol = toCol;
+public  class CheckersMove {
+    private final BoardField fromField;
+    private final BoardField toField;
+    private  boolean isJump =false;
+    private int idToDelete;
+    public CheckersMove(BoardField fromField, BoardField toField) {
+        this.fromField = fromField;
+        this.toField = toField;
 
     }
+    public CheckersMove(BoardField fromField, BoardField toField, int idToDelete) {
+        this.fromField = fromField;
+        this.toField = toField;
+        this.idToDelete = idToDelete;
+        this.isJump = true;
+    }
 
-    boolean isJump() {
-        return (fromRow - toRow == 2 || fromRow - toRow == -2);
+    public BoardField getFromField() {
+        return fromField;
+    }
+
+    public BoardField getToField() {
+        return toField;
+    }
+
+    public boolean isJump() {
+        return isJump;
+    }
+
+    public void setJump(boolean jump) {
+        isJump = jump;
+    }
+
+    public int getIdToDelete() {
+        return idToDelete;
+    }
+
+    public void setIdToDelete(int idToDelete) {
+        this.idToDelete = idToDelete;
     }
 }

@@ -8,54 +8,74 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 
+import java.util.ArrayList;
+
+import static com.kodilla.checkers.Team.BLACK;
+import static com.kodilla.checkers.Team.WHITE;
 
 
 public class CheckersBoard extends Canvas {
-    public static final int PieceSize = 28;
-    public static final int HIGHLIGHT_LINE = 4;
+    private final Checkers checkers;
     private final CheckersData board;
+    private final Computer computer;
     private int selectedRow, selectedCol;
-    private CheckersMove[] legalMoves;
-    private final Label message;
-    boolean gameInProgress;
-    private final Button newGameButton;
-    private final Button resignButton;
-    private Team currentPlayer;
-    public PieceType pieceType;
-    private final GraphicsContext g = getGraphicsContext2D();
-    private final int BOARD_SIZE = 8;
-    private final int TILE_SIZE = 40;
+   private boolean gameInProgress;
+    public Team currentPlayer;
+    private boolean gameVsComputer;
+
+    private ArrayList<CheckersMove> legalMoves = new ArrayList<>();
 
 
-    CheckersBoard(Label message, boolean gameInProgress, Team currentPlayer, PieceType pieceType, Button newGameButton, Button resignButton) {
+
+    CheckersBoard(Checkers checkers) {
         super(324, 324);
-        this.gameInProgress = gameInProgress;
-        this.currentPlayer = currentPlayer;
-        this.message = message;
-        this.pieceType = pieceType;
-        this.newGameButton = newGameButton;
-        this.resignButton = resignButton;
+      this.checkers = checkers;
+      computer = new Computer();
         board = new CheckersData();
-        doNewGame();
+        doNewGameVsPlayer();
     }
 
-    void doNewGame() {
+    void doNewGameVsPlayer() {
         if (gameInProgress) {
-            message.setText("Finish the current game first!");
+            checkers.message.setText("Finish the current game first!");
             return;
         }
         board.setUpGame();
-        currentPlayer = Team.WHITE;
-        legalMoves = board.getLegalMoves(PieceType.WHITE_PIECE, Team.WHITE );
+        currentPlayer = WHITE;
+        gameVsComputer = false;
+        legalMoves = board.getLegalMoves(WHITE);
         selectedRow = -1;
-        message.setText("White:  Make your move.");
+        checkers.message.setText("White:  Make your move.");
         gameInProgress = true;
-        newGameButton.setDisable(true);
-        resignButton.setDisable(false);
+        checkers.newPlayersGameButton.setDisable(true);
+        checkers.newGameVsComputerButton.setDisable(false);
+        checkers.resignButton.setDisable(false);
+        drawBoard();
+    }
+
+    public void doNewGameVsComputer() {
+        if (gameInProgress) {
+            checkers.message.setText("Finish the current game first!");
+            return;
+        }
+        board.setUpGame();
+        currentPlayer = WHITE;
+        gameVsComputer = true;
+        legalMoves = board.getLegalMoves(WHITE);
+        selectedRow = -1;
+        checkers.message.setText("White:  Make your move.");
+        gameInProgress = true;
+        checkers.newGameVsComputerButton.setDisable(true);
+        checkers.newPlayersGameButton.setDisable(false);
+        checkers.resignButton.setDisable(false);
         drawBoard();
     }
 
     void doResign() {
+        if (!gameInProgress) {
+            checkers.message.setText("There is no game in progress!");
+            return;
+        }
 
         if (currentPlayer == Team.WHITE)
             gameOver("WHITE resigns.  BLACK wins.");
@@ -64,94 +84,92 @@ public class CheckersBoard extends Canvas {
     }
 
     void gameOver(String str) {
-        message.setText(str);
-        newGameButton.setDisable(false);
-        resignButton.setDisable(true);
+        checkers.message.setText(str);
+        checkers.newPlayersGameButton.setDisable(false);
+        checkers.newGameVsComputerButton.setDisable(false);
+        checkers.resignButton.setDisable(true);
         gameInProgress = false;
     }
 
-    void doClickSquare(int row, int col) {
+    void doClickSquare(int id) {
         for (CheckersMove legalMove : legalMoves)
-            if (legalMove.fromRow == row && legalMove.fromCol == col) {
-                selectedRow = row;
-                selectedCol = col;
-                if (currentPlayer == Team.WHITE)
-                    message.setText("WHITE:  Make your move.");
+            if (legalMove.getFromField().getId() == id) {
+                selectedRow = id / 10;
+                selectedCol = id % 10;
+                if (currentPlayer == WHITE)
+                    checkers.message.setText("WHITE:  Make your move.");
                 else
-                    message.setText("BLACK:  Make your move.");
+                    checkers.message.setText("BLACK:  Make your move.");
                 drawBoard();
                 return;
             }
         if (selectedRow < 0) {
-            message.setText("Click on the piece you want to move.");
+            checkers.message.setText("Click on the piece you want to move.");
             return;
         }
+
+        legalMoves.clear();
+        legalMoves = board.getLegalMoves(currentPlayer);
+
+
         for (CheckersMove legalMove : legalMoves)
-            if (legalMove.fromRow == selectedRow && legalMove.fromCol == selectedCol
-                    && legalMove.toRow == row && legalMove.toCol == col) {
+            if (legalMove.getFromField().getRow() == selectedRow && legalMove.getFromField().getCol() == selectedCol
+                    && legalMove.getToField().getId() == id) {
                 doMakeMove(legalMove);
                 return;
             }
 
-        message.setText("Click the square you want to move to.");
+        checkers.message.setText("Click the square you want to move to.");
 
     }
 
     void doMakeMove(CheckersMove move) {
         board.makeMove(move);
         if (move.isJump()) {
-            legalMoves = board.getLegalJumpsFrom(pieceType , move.toRow, move.toCol);
+            legalMoves.clear();
+            legalMoves = board.getLegalJumpsFor(currentPlayer, move.getToField().getId());
             if (legalMoves != null) {
-                if (currentPlayer == Team.WHITE)
-                    message.setText("WHITE:  You must continue jumping.");
+                if (currentPlayer == WHITE)
+                    checkers.message.setText("WHITE:  You must continue jumping.");
                 else
-                    message.setText("BLACK:  You must continue jumping.");
-                selectedRow = move.toRow;
-                selectedCol = move.toCol;
+                    checkers.message.setText("BLACK:  You must continue jumping.");
+                selectedRow = move.getToField().getRow();
+                selectedCol = move.getToField().getCol();
                 drawBoard();
                 return;
             }
         }
-        if (currentPlayer == Team.WHITE) {
-            currentPlayer = Team.BLACK;
-            legalMoves = board.getLegalMoves( pieceType, currentPlayer);
-            if (legalMoves == null)
-                gameOver("BLACK has no moves. WHITE wins.");
-            else if (legalMoves[0].isJump())
-                message.setText("BLACK:  Make your move.  You must jump.");
-            else
-                message.setText("BLACK:  Make your move.");
+        if (currentPlayer == WHITE) {
+            blackPlayerTurn(move);
         } else {
-            currentPlayer = Team.WHITE;
-            legalMoves = board.getLegalMoves( pieceType, currentPlayer);
-            if (legalMoves == null)
-                gameOver("WHITE has no moves.  BLACK wins.");
-            else if (legalMoves[0].isJump())
-                message.setText("WHITE:  Make your move.  You must jump.");
-            else
-                message.setText("WHITE:  Make your move.");
+            whitePlayerTurn(move);
         }
-
         selectedRow = -1;
-        if (legalMoves != null) {
-            boolean sameStartSquare = true;
-            for (int i = 1; i < legalMoves.length; i++)
-                if (isNormalMove(legalMoves[i])) {
-                    sameStartSquare = false;
-                    break;
-                }
-            if (sameStartSquare) {
-                selectedRow = legalMoves[0].fromRow;
-                selectedCol = legalMoves[0].fromCol;
-            }
-        }
         drawBoard();
     }
+    private void whitePlayerTurn(CheckersMove move) {
+        currentPlayer = WHITE;
 
-    private boolean isNormalMove(CheckersMove legalMove) {
-        return legalMove.fromRow != legalMoves[0].fromRow
-                || legalMove.fromCol != legalMoves[0].fromCol;
+        legalMoves = board.getLegalMoves(currentPlayer);
+        if (legalMoves == null)
+            gameOver("WHITE has no moves.  BLACK wins.");
+        else if (move.isJump())
+            checkers.message.setText("WHITE:  Make your move.  You must jump.");
+        else
+            checkers.message.setText("WHITE:  Make your move.");
     }
+
+    private void blackPlayerTurn(CheckersMove move) {
+        currentPlayer = BLACK;
+        legalMoves = board.getLegalMoves(currentPlayer);
+        if (legalMoves == null)
+            gameOver("BLACK has no moves. WHITE wins.");
+        else if (move.isJump())
+            checkers.message.setText("BLACK:  Make your move.  You must jump.");
+        else
+            checkers.message.setText("BLACK:  Make your move.");
+    }
+
 
     public void initGraphicContext() {
         GraphicsContext g = getGraphicsContext2D();
@@ -163,34 +181,36 @@ public class CheckersBoard extends Canvas {
 
 
     public void drawBoard() {
-        initGraphicContext();
-        for (int row = 0; row < BOARD_SIZE; row++) {
-            for (int col = 0; col < BOARD_SIZE; col++) {
-                if (row % 2 == col % 2)
-                    g.setFill(Color.LIGHTGRAY);
-                else
-                    g.setFill(Color.DARKGRAY);
-                g.fillRect(2 + col * TILE_SIZE, 2 + row * TILE_SIZE, TILE_SIZE, TILE_SIZE);
-                drawPiece(row, col);
+        GraphicsContext g = getGraphicsContext2D();
+        g.setFont(Font.font(18));
+        ambientField(g, Color.BLACK, 2);
+        g.strokeRect(1, 1, 322, 322);
+        for (int row = 0; row < 8; row++) {
+            for (int col = 0; col < 8; col++) {
+                drawBoardField(g, row, col);
+                if (!board.isPieceEmpty(row, col)) {
+                    if (board.pieceAt(row, col).getTeam() == WHITE && board.pieceAt(row, col).getPieceType() == PieceType.NORMAL)
+                        drawPiece(g, row, col, Color.WHITE);
+                    else if (board.pieceAt(row, col).getTeam() == BLACK && board.pieceAt(row, col).getPieceType() == PieceType.NORMAL)
+                        drawPiece(g, row, col, Color.BLACK);
+                    else if (board.pieceAt(row, col).getTeam() == WHITE && board.pieceAt(row, col).getPieceType() == PieceType.KING)
+                        drawKingPiece(g, row, col, Color.WHITE, Color.BLACK);
+                    else if (board.pieceAt(row, col).getTeam() == BLACK && board.pieceAt(row, col).getPieceType() == PieceType.KING)
+                        drawKingPiece(g, row, col, Color.BLACK, Color.WHITE);
+                }
             }
         }
 
         if (gameInProgress) {
-            g.setStroke(Color.CYAN);
-            g.setLineWidth(HIGHLIGHT_LINE);
-
+            ambientField(g, Color.CYAN, 4);
             for (CheckersMove legalMove : legalMoves) {
-                drawAvailableMoveStroke(legalMove.fromCol, legalMove.fromRow);
+                drawLegalMoves(g, legalMove.getFromField());
             }
             if (selectedRow >= 0) {
-                g.setStroke(Color.YELLOW);
-                g.setLineWidth(HIGHLIGHT_LINE);
-                drawAvailableMoveStroke(selectedCol, selectedRow);
-                g.setStroke(Color.LIME);
-                g.setLineWidth(HIGHLIGHT_LINE);
+                ambientAvailableMoves(g);
                 for (CheckersMove legalMove : legalMoves) {
-                    if (legalMove.fromCol == selectedCol && legalMove.fromRow == selectedRow) {
-                        drawAvailableMoveStroke(legalMove.toCol, legalMove.toRow);
+                    if (legalMove.getFromField().getCol() == selectedCol && legalMove.getFromField().getRow() == selectedRow) {
+                        drawLegalMoves(g, legalMove.getToField());
                     }
                 }
             }
@@ -198,45 +218,69 @@ public class CheckersBoard extends Canvas {
 
     }
 
-    private void drawAvailableMoveStroke(int fromCol, int fromRow) {
-        g.strokeRect(HIGHLIGHT_LINE + fromCol * TILE_SIZE, HIGHLIGHT_LINE + fromRow * TILE_SIZE, 36, 36);
+    private void ambientField(GraphicsContext g, Color cyan, int i) {
+        g.setStroke(cyan);
+        g.setLineWidth(i);
     }
 
-
-    private void drawPiece(int row, int col, Color c, boolean isKing) {
-        g.setFill(c);
-        g.fillOval(BOARD_SIZE + col * TILE_SIZE, BOARD_SIZE + row * TILE_SIZE, PieceSize, PieceSize);
-        if (!isKing)
-            return;
-        g.setFill(Color.BLACK);
-        g.fillText("K", 15 + col * TILE_SIZE, 29 + row * TILE_SIZE);
+    private void ambientAvailableMoves(GraphicsContext g) {
+        ambientField(g, Color.YELLOW, 4);
+        g.strokeRect(4 + selectedCol * 40, 4 + selectedRow * 40, 36, 36);
+        ambientField(g, Color.LIME, 4);
     }
 
-    private void drawPiece(int row, int col) {
-        switch (board.pieceAt(row, col)) {
-            case WHITE_PIECE:
-                drawPiece(row, col, Color.WHITE, false);
-                break;
-            case BLACK_PIECE:
-                drawPiece(row, col, Color.BLACK, false);
-                break;
-            case WHITE_KING:
-                drawPiece(row, col, Color.WHITE, true);
-                break;
-            case BLACK_KING:
-                drawPiece(row, col, Color.BLACK, true);
-                break;
-        }
+    private void drawLegalMoves(GraphicsContext g, BoardField fromField) {
+        g.strokeRect(4 + fromField.getCol() * 40, 4 + fromField.getRow() * 40, 36, 36);
+    }
+
+    private void drawBoardField(GraphicsContext g, int row, int col) {
+        if (row % 2 == col % 2)
+            g.setFill(Color.DARKGRAY);
+        else
+            g.setFill(Color.LIGHTGRAY);
+        g.fillRect(2 + col * 40, 2 + row * 40, 40, 40);
+    }
+
+    private void drawKingPiece(GraphicsContext g, int row, int col, Color white, Color black) {
+        drawPiece(g, row, col, white);
+        g.setFill(black);
+        g.fillText("K", 15 + col * 40, 29 + row * 40);
+    }
+
+    private void drawPiece(GraphicsContext g, int row, int col, Color color) {
+        g.setFill(color);
+        g.fillOval(8 + col * 40, 8 + row * 40, 28, 28);
     }
 
     public void mousePressed(MouseEvent evt) {
         if (!gameInProgress)
-            message.setText("Click \"New Game\" to start a new game.");
+            checkers.message.setText("Click \"New Game\" to start a new game.");
         else {
-            int col = (int) ((evt.getX() - 2) / TILE_SIZE);
-            int row = (int) ((evt.getY() - 2) / TILE_SIZE);
-            if (col >= 0 && col < BOARD_SIZE && row >= 0 && row < BOARD_SIZE)
-                doClickSquare(row, col);
+            int col = (int) ((evt.getX() - 2) / 40);
+            int row = (int) ((evt.getY() - 2) / 40);
+            if (col >= 0 && col < 8 && row >= 0 && row < 8)
+                doClickSquare(row * 10 + col);
+            if (isGameVsComputer() && isBlackPlayerTurn()) {
+                computerMove();
+            }
         }
+    }
+
+
+    public boolean isGameVsComputer() {
+        return gameVsComputer;
+    }
+
+    public boolean isBlackPlayerTurn() {
+        return currentPlayer == BLACK;
+    }
+
+    public void computerMove() {
+        CheckersMove move = computer.selectMove(board.getLegalMoves(currentPlayer));
+        doMakeMove(move);
+        move = computer.selectMove(board.getLegalMoves(currentPlayer));
+        if (move.isJump()&& currentPlayer == BLACK)
+            computerMove();
+        currentPlayer = WHITE;
     }
 }
