@@ -12,7 +12,7 @@ import static  com.kodilla.checkers.Team.BLACK;
 
 public class CheckersData {
 
-    private final kingMovesCalculator kingMovesCalculator = new kingMovesCalculator(this);
+    private final KingMovesCalculator kingMovesCalculator = new KingMovesCalculator(this);
     private final Map<Integer, BoardField> board = new HashMap<>();
     private final ArrayList<CheckersMove> moves = new ArrayList<>();
     public static final int board_size = 8;
